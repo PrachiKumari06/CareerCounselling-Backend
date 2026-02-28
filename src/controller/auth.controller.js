@@ -92,7 +92,7 @@ export const forgotPassword = async (req, res) => {
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${process.env.FRONTEND_URL}/update-password`
-      //redirectTo:"http://localhost:5173/update-password"   this i swhen i run on my localhost
+      //redirectTo:"http://localhost:5173/update-password"   //this i swhen i run on my localhost
      
     });
 

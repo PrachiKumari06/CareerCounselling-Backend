@@ -14,11 +14,11 @@ dotenv.config()
 const app=express()
 const PORT=process.env.PORT || 5000;
 app.use(express.json())
-app.use(cors())   // as it will used to connect and not give any error during deployment and connection with frontend
-// app.use(cors({
-//   origin: process.env.FRONTEND_URL,
-//   credentials: true
-// }));
+//app.use(cors())   // as it will used to connect and not give any error during deployment and connection with frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL,
+  credentials: true
+}));
 app.use("/api/auth", authRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/session", sessionRoutes);
