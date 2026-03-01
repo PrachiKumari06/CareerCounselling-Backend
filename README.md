@@ -219,7 +219,7 @@ Backend is deployed on Render.
  Deployment Link: https://careercounselling-backend.onrender.com
 
 Frontend (Netlify):
-Deployment Link: https://careerconnect-counselling.netlify.app
+Deployment Link: https://careerconnect-counselling-frontend.vercel.app
 
 
 
