@@ -4,7 +4,7 @@ import { sendEmail } from "../utils/sendEmails.js";
 export const bookSession = async (req, res) => {
   const { counselor_id, session_date } = req.body;
 
-  if (req.user.id === counselor_id) {   //check before inserting
+  if (req.user.id === counselor_id) {
     return res.status(400).json({ error: "You cannot book yourself" });
   }
 
@@ -22,29 +22,26 @@ export const bookSession = async (req, res) => {
 
   if (error) return res.status(400).json(error);
 
-  const { data: counselor } = await supabase 
+  const { data: counselor } = await supabase
     .from("career_profiles")
     .select("full_name")
     .eq("user_id", counselor_id)
     .single();
 
-  if (!counselor) {
-    return res.status(400).json({ error: "Counselor not found" });
-  }
-
   const { data: userData } =
     await supabase.auth.admin.getUserById(req.user.id);
 
-  if (!userData?.user?.email) {
+  const studentEmail = userData?.user?.email;
+
+  if (!studentEmail) {
     return res.status(400).json({ error: "User email not found" });
   }
 
-  const studentEmail = userData.user.email;
-console.log("BREVO USER:", process.env.BREVO_SMTP_USER)
-sendEmail(
-  studentEmail,
-  "Session Booked Successfully",
-  `
+  try {
+    await sendEmail(
+      studentEmail,
+      "Session Booked Successfully",
+      `
 Hello,
 
 Your session has been booked successfully.
@@ -55,10 +52,12 @@ Status: Pending approval
 
 Thank you.
 `
-).catch((mailError) => {
-  console.log("Email sending failed:", mailError.message);
-});
-console.log("Sending email to:", studentEmail);
+    );
+    console.log("Email sent successfully");
+  } catch (err) {
+    console.log("Email failed:", err.message);
+  }
+
   res.json({ message: "Session booked successfully" });
 };
 // user when they want to see their sessions
