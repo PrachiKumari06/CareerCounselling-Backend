@@ -40,6 +40,8 @@ export const bookSession = async (req, res) => {
   }
 
   const studentEmail = userData.user.email;
+  console.log("EMAIL_USER:", process.env.EMAIL_USER)
+
 sendEmail(
   studentEmail,
   "Session Booked Successfully",
@@ -57,7 +59,7 @@ Thank you.
 ).catch((mailError) => {
   console.log("Email sending failed:", mailError.message);
 });
-
+console.log("Sending email to:", studentEmail);
   res.json({ message: "Session booked successfully" });
 };
 // user when they want to see their sessions
