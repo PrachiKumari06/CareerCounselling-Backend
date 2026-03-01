@@ -114,19 +114,77 @@ export const updateSessionStatus = async (req, res) => {
   const { status, meeting_link } = req.body;
 
   const updateData = { status };
-
-  // If approved and link provided
+//if approved then we will send the link
   if (status === "approved" && meeting_link) {
     updateData.meeting_link = meeting_link;
   }
 
-  const { error } = await supabase
+  // get updated session
+  const { data: session, error } = await supabase
     .from("sessions")
     .update(updateData)
     .eq("id", id)
-    .eq("counselor_id", req.user.id);
+    .eq("counselor_id", req.user.id)
+    .select()
+    .single();
 
   if (error) return res.status(400).json(error);
+
+  // Only if approved
+  if (status === "approved") {
+    try {
+      const { data: userData } =
+        await supabase.auth.admin.getUserById(session.user_id);
+
+      const studentEmail = userData?.user?.email;
+
+      if (studentEmail) {
+        const sessionTime = new Date(session.session_date);
+
+        // 1️. Send approval email immediately
+        await sendEmail(
+          studentEmail,
+          "Session Approved 🎉",
+          `
+Hello,
+
+Your session has been approved!
+
+Date: ${sessionTime.toLocaleString()}
+Meeting Link: ${meeting_link}
+
+Please join on time.
+
+Thank you.
+`
+        );
+
+        // 2️. Schedule reminder 1 hour before
+        const reminderTime = new Date(
+          sessionTime.getTime() - 60 * 60 * 1000
+        );
+
+        // Only schedule if reminder time is future
+        if (reminderTime > new Date()) {
+          await sendEmail(
+            studentEmail,
+            "Session Reminder ⏰",
+            `
+Reminder:
+
+Your session is scheduled at:
+${sessionTime.toLocaleString()}
+
+Please join on time.
+`,
+            reminderTime // pass scheduled time
+          );
+        }
+      }
+    } catch (err) {
+      console.log("Email process failed:", err.message);
+    }
+  }
 
   res.json({ message: "Session updated successfully" });
 };
