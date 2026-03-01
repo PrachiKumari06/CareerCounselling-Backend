@@ -8,8 +8,8 @@ apiKey.apiKey = process.env.BREVO_API_KEY;
 
 const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
-export const sendEmail = async (to, subject, text) => {
-  await tranEmailApi.sendTransacEmail({
+export const sendEmail = async (to, subject, text, scheduleTime = null) => {
+  const emailData = {
     sender: {
       email: process.env.BREVO_SENDER_EMAIL,
       name: "CareerConnect",
@@ -17,5 +17,11 @@ export const sendEmail = async (to, subject, text) => {
     to: [{ email: to }],
     subject,
     textContent: text,
-  });
+  };
+
+  if (scheduleTime) {
+    emailData.sendAt = Math.floor(scheduleTime.getTime() / 1000);
+  }
+
+  await tranEmailApi.sendTransacEmail(emailData);
 };
