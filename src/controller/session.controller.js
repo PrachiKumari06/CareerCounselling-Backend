@@ -1,15 +1,14 @@
 import supabase from "../config/supabase.config.js";
-import { sendEmail } from "../utils/sendEmails.js";
 
 export const bookSession = async (req, res) => {
   const { counselor_id, session_date } = req.body;
 
+  //Check before inserting
   if (req.user.id === counselor_id) {
     return res.status(400).json({ error: "You cannot book yourself" });
   }
 
-  // Insert session
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from("sessions")
     .insert([
       {
@@ -17,45 +16,10 @@ export const bookSession = async (req, res) => {
         counselor_id,
         session_date,
       },
-    ])
-    .select()
-    .single();
+    ]);
 
   if (error) return res.status(400).json(error);
 
-  // Get counselor name
-  const { data: counselor } = await supabase
-    .from("career_profiles")
-    .select("full_name")
-    .eq("user_id", counselor_id)
-    .single();
-
-  // Get student email from Supabase Auth
-  const { data: userData } =
-    await supabase.auth.admin.getUserById(req.user.id);
-
-  const studentEmail = userData.user.email;
-
-  // Send email
-  try {
-  await sendEmail(
-    studentEmail,
-    "Session Booked Successfully",
-    `
-Hello,
-
-Your session has been booked successfully.
-
-Counselor: ${counselor.full_name}
-Date: ${new Date(session_date).toLocaleString()}
-Status: Pending approval
-
-Thank you.
-`
-  );
-} catch (mailError) {
-  console.log("Email failed:", mailError.message);
-}
   res.json({ message: "Session booked successfully" });
 };
 // user when they want to see their sessions
