@@ -37,6 +37,7 @@ export const bookSession = async (req, res) => {
   const studentEmail = userData.user.email;
 
   // Send email
+  try {
   await sendEmail(
     studentEmail,
     "Session Booked Successfully",
@@ -52,7 +53,9 @@ Status: Pending approval
 Thank you.
 `
   );
-
+} catch (mailError) {
+  console.log("Email failed:", mailError.message);
+}
   res.json({ message: "Session booked successfully" });
 };
 // user when they want to see their sessions
