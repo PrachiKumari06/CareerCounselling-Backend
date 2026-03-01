@@ -20,3 +20,10 @@ export const sendEmail = async (to, subject, text) => {
     text,
   });
 };
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("SMTP VERIFY ERROR:", error);
+  } else {
+    console.log("SMTP Server is ready");
+  }
+});
