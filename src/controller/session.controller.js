@@ -40,8 +40,7 @@ export const bookSession = async (req, res) => {
   }
 
   const studentEmail = userData.user.email;
-  console.log("EMAIL_USER:", process.env.EMAIL_USER)
-
+console.log("BREVO USER:", process.env.BREVO_SMTP_USER)
 sendEmail(
   studentEmail,
   "Session Booked Successfully",
