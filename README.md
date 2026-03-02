@@ -80,6 +80,16 @@ Authentication is handled using JWT tokens.
 
 ##  API Documentation: 
 
+### Brevo API (Email Notifications)
+I integrated Brevo’s transactional email API to send automated emails for important events like session approvals and reminders.
+This ensures users receive real-time notifications outside the platform as well.
+
+### Gemini AI (AI-Generated Career Recommendation)
+I integrated Gemini AI to generate personalized career recommendations based on user profile and assessment data.
+It analyzes user inputs and suggests suitable career paths along with required skills and roadmap guidance.
+
+---
+
 ###  Auth Routes
 
 | Method | Endpoint | Description |
@@ -218,7 +228,7 @@ All relationships are properly normalized using foreign keys.
 Backend is deployed on Render.
  Deployment Link: https://careercounselling-backend.onrender.com
 
-Frontend (Netlify):
+Frontend (Vercel):
 Deployment Link: https://careerconnect-counselling-frontend.vercel.app
 
 
