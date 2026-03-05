@@ -95,7 +95,7 @@ export const forgotPassword = async (req, res) => {
       //redirectTo:"http://localhost:5173/update-password"   //this i swhen i run on my localhost
      
     });
-
+ 
     if (error) {
       return res.status(400).json({ error: error.message });
     }

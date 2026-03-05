@@ -64,6 +64,7 @@ export const getAllCounselors = async (req, res) => {
           skills,
           bio,
           experience
+          
         )
       `)
       .eq("role", "counselor");
@@ -87,7 +88,7 @@ export const matchCounselors = async (req, res) => {
     // Get user profile
     const { data: userProfile } = await supabase
       .from("career_profiles")
-      .select("skills, interests")
+      .select("skills, interests,education")
       .eq("user_id", userId)
       .single();
 
@@ -106,7 +107,8 @@ export const matchCounselors = async (req, res) => {
           interests,
           education,
           bio,
-          experience
+          experience,
+          session_price
         )
       `)
       .eq("role", "counselor");

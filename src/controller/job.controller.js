@@ -1,8 +1,6 @@
 import supabase from "../config/supabase.config.js";
 
-/* ===============================
-   GET ALL JOBS (with search)
-================================= */
+/* GET ALL JOBS (with search)*/
 export const getJobs = async (req, res) => {
   try {
     const { search, location, type } = req.query;
@@ -32,9 +30,7 @@ export const getJobs = async (req, res) => {
 };
 
 
-/* ===============================
-   APPLY TO JOB
-================================= */
+/*apply to job */
 export const applyJob = async (req, res) => {
   try {
     console.log("BODY:", req.body);
@@ -108,9 +104,7 @@ export const applyJob = async (req, res) => {
   }
 };
 
-/* ===============================
-   GET MY APPLIED JOBS
-================================= */
+/* get my applied job */
 export const getMyApplications = async (req, res) => {
   try {
     const { data, error } = await supabase

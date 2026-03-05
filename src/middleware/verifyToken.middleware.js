@@ -19,7 +19,7 @@ export const verifyToken = async (req, res, next) => {
 
     const userId = data.user.id;
 
-    // 🔥 Fetch role from profiles table
+    // Fetch role from profiles table
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("role")

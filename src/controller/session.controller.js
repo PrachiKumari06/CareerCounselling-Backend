@@ -1,5 +1,6 @@
 import supabase from "../config/supabase.config.js";
 import { sendEmail } from "../utils/sendEmails.js";
+import razorpay from "../utils/razorpay.js";
 
 export const bookSession = async (req, res) => {
   const { counselor_id, session_date } = req.body;
@@ -7,7 +8,40 @@ export const bookSession = async (req, res) => {
   if (req.user.id === counselor_id) {
     return res.status(400).json({ error: "You cannot book yourself" });
   }
+  console.log("bookSession API called");
+console.log("User ID:", req.user.id);
+// check how many sessions user already has
+const { data: sessions } = await supabase
+  .from("sessions")
+  .select("id")
+  .eq("user_id", req.user.id)
+  .eq("counselor_id", counselor_id); //check with parsticular counsellor how much session : if one free then paid
 
+const count = sessions?.length || 0;
+
+console.log("Session count:", count);
+
+// first session free
+if (count === 0) {
+  console.log("First session free");
+} else {
+const { data: counselorPrice } = await supabase
+  .from("career_profiles")
+  .select("session_price")
+  .eq("user_id", counselor_id)
+  .single();
+
+const order = await razorpay.orders.create({   //payment procedure based on counsellor price for per session
+  amount: counselorPrice.session_price * 100,
+  currency: "INR",
+  receipt: `receipt_${Date.now()}`
+});
+
+  return res.json({
+    paymentRequired: true,
+    order
+  });
+}
   const { data, error } = await supabase
     .from("sessions")
     .insert([
@@ -163,7 +197,11 @@ Thank you.
         const reminderTime = new Date(
           sessionTime.getTime() - 60 * 60 * 1000
         );
-
+console.log("Session Date Raw:", session.session_date);
+console.log("Session Time Parsed:", sessionTime);
+console.log("Reminder Time:", reminderTime);
+console.log("Current Time:", new Date());
+console.log("Reminder scheduled for:", reminderTime.toISOString());
         // Only schedule if reminder time is future
         if (reminderTime > new Date()) {
           await sendEmail(
