@@ -49,6 +49,7 @@ const order = await razorpay.orders.create({   //payment procedure based on coun
         user_id: req.user.id,
         counselor_id,
         session_date,
+        payment_status: "free"
       },
     ])
     .select()

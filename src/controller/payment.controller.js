@@ -29,7 +29,8 @@ export const verifyPayment = async (req, res) => {
       {
         user_id: req.user.id,
         counselor_id,
-        session_date
+        session_date,
+         payment_status: "paid"
       }
     ])
     .select()
