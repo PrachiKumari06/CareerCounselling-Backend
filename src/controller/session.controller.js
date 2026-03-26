@@ -146,84 +146,47 @@ export const getCounselorSessions = async (req, res) => {
 // counselor can accept or reject session request by updating status
 export const updateSessionStatus = async (req, res) => {
   const { id } = req.params;
-  const { status, meeting_link } = req.body;
+  const { status, meeting_link, rejection_reason } = req.body;
 
-  const updateData = { status };
-//if approved then we will send the link
-  if (status === "approved" && meeting_link) {
+  let updateData = { status };
+
+  if (status === "approved") {
     updateData.meeting_link = meeting_link;
   }
 
-  // get updated session
-  const { data: session, error } = await supabase
+  if (status === "rejected") {
+    updateData.rejection_reason = rejection_reason;
+  }
+
+  const { error } = await supabase
     .from("sessions")
     .update(updateData)
-    .eq("id", id)
-    .eq("counselor_id", req.user.id)
-    .select()
-    .single();
+    .eq("id", id);
 
   if (error) return res.status(400).json(error);
 
-  // Only if approved
-  if (status === "approved") {
-    try {
-      const { data: userData } =
-        await supabase.auth.admin.getUserById(session.user_id);
+  res.json({ message: "Updated successfully" });
+};
 
-      const studentEmail = userData?.user?.email;
+export const rescheduleSession = async (req, res) => {
+  const { id } = req.params;
+  const { session_date, reason } = req.body;
 
-      if (studentEmail) {
-        const sessionTime = new Date(session.session_date);
+  try {
+    const { error } = await supabase
+      .from("sessions")
+      .update({
+        session_date,
+        status: "pending",
+        reschedule_reason: reason,
+        meeting_link: null
+      })
+      .eq("id", id);
 
-        // 1️. Send approval email immediately
-        await sendEmail(
-          studentEmail,
-          "Session Approved 🎉",
-          `
-Hello,
+    if (error) return res.status(400).json(error);
 
-Your session has been approved!
-
-Date: ${sessionTime.toLocaleString()}
-Meeting Link: ${meeting_link}
-
-Please join on time.
-
-Thank you.
-`
-        );
-
-        // 2️. Schedule reminder 1 hour before
-        const reminderTime = new Date(
-          sessionTime.getTime() - 60 * 60 * 1000
-        );
-console.log("Session Date Raw:", session.session_date);
-console.log("Session Time Parsed:", sessionTime);
-console.log("Reminder Time:", reminderTime);
-console.log("Current Time:", new Date());
-console.log("Reminder scheduled for:", reminderTime.toISOString());
-        // Only schedule if reminder time is future
-        if (reminderTime > new Date()) {
-          await sendEmail(
-            studentEmail,
-            "Session Reminder ⏰",
-            `
-Reminder:
-
-Your session is scheduled at:
-${sessionTime.toLocaleString()}
-
-Please join on time.
-`,
-            reminderTime // pass scheduled time
-          );
-        }
-      }
-    } catch (err) {
-      console.log("Email process failed:", err.message);
-    }
+    res.json({ message: "Session rescheduled" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
-
-  res.json({ message: "Session updated successfully" });
 };

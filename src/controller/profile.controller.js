@@ -131,9 +131,33 @@ export const matchCounselors = async (req, res) => {
         .some((word) => counselorKeywords.includes(word.trim()));
     });
 
-    res.json(matched.length ? matched : counselors);
+    const finalList=(matched.length ? matched : counselors);
+    const counselorsWithRating = await Promise.all(
+      finalList.map(async (c) => {
+        const { data: feedbacks } = await supabase
+          .from("feedback")
+          .select("rating")
+          .eq("counselor_id", c.id);
+
+        const total = feedbacks?.length || 0;
+        const avg =
+          total === 0
+            ? 0
+            : feedbacks.reduce((sum, f) => sum + f.rating, 0) / total;
+
+        return {
+          ...c,
+          avgRating: avg.toFixed(1),
+          totalReviews: total
+        };
+      })
+    );
+
+    //  FINAL RESPONSE
+    res.json(counselorsWithRating);
 
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+

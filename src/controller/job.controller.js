@@ -3,10 +3,28 @@ import supabase from "../config/supabase.config.js";
 /* GET ALL JOBS (with search)*/
 export const getJobs = async (req, res) => {
   try {
-    const { search, location, type } = req.query;
+   const { search, location, type, status } = req.query;
 
-    let query = supabase.from("jobs").select("*");
+let query = supabase.from("jobs").select(`
+  id,
+  title,
+  company,
+  location,
+  type,
+  salary,
+  description,
+  expiry_date,
+  created_at,
+  company_culture
+`);
+// NEW: filter by status
+if (status === "active") {
+  query = query.gte("expiry_date", new Date().toISOString());
+}
 
+if (status === "closed") {
+  query = query.lt("expiry_date", new Date().toISOString());
+}
     if (search) {
       query = query.ilike("title", `%${search}%`);
     }
@@ -32,6 +50,7 @@ export const getJobs = async (req, res) => {
 
 /*apply to job */
 export const applyJob = async (req, res) => {
+ 
   try {
     console.log("BODY:", req.body);
     console.log("FILE:", req.file);
@@ -39,7 +58,15 @@ export const applyJob = async (req, res) => {
 
     const { job_id } = req.body;
     const file = req.file;
+ const { data: job } = await supabase
+  .from("jobs")
+  .select("expiry_date")
+  .eq("id", job_id)
+  .single();
 
+if (new Date(job.expiry_date) < new Date()) {
+  return res.status(400).json({ error: "Job expired" });
+}
     if (!file) {
       console.log("No file received");
       return res.status(400).json({ error: "Resume is required" });
@@ -112,6 +139,7 @@ export const getMyApplications = async (req, res) => {
       .select(`
         id,
         status,
+        resume_url,
         jobs (
           id,
           title,
@@ -128,5 +156,69 @@ export const getMyApplications = async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const getRecommendedJobs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1. Get profile
+    const { data: profile } = await supabase
+      .from("career_profiles")
+      .select("skills, interests")
+      .eq("user_id", userId)
+      .single();
+
+    // 2. Get jobs
+    const { data: jobs } = await supabase
+      .from("jobs")
+      .select("*");
+
+    if (!jobs) return res.json([]);
+
+    // 3. Prepare user keywords
+    const userKeywords = (
+      (profile?.skills || "") + "," + (profile?.interests || "")
+    )
+      .toLowerCase()
+      .split(",");
+
+    // 4. Match logic
+    const jobsWithMatch = jobs.map((job) => {
+      const jobSkills = (job.skills_required || "")
+        .toLowerCase()
+        .split(",");
+
+      const matched = jobSkills.filter((skill) =>
+        userKeywords.some((userSkill) =>
+          skill.includes(userSkill.trim()) ||
+          userSkill.includes(skill.trim())
+        )
+      );
+
+      const matchPercent =
+        jobSkills.length > 0
+          ? (matched.length / jobSkills.length) * 100
+          : 0;
+
+      return {
+        ...job,
+        matchPercent: Math.round(matchPercent),
+      };
+    });
+
+    // 5. Sort
+    jobsWithMatch.sort((a, b) => b.matchPercent - a.matchPercent);
+
+    // 6. ✅ Fallback (IMPORTANT)
+    const hasMatch = jobsWithMatch.some(job => job.matchPercent > 0);
+
+    const finalJobs = hasMatch ? jobsWithMatch : jobs;
+
+    res.json(finalJobs);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
