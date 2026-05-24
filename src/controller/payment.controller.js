@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import supabase from "../config/supabase.config.js";
-import { sendEmail } from "../utils/sendEmails.js";
+import { sendSessionBookedEmail } from "./session.controller.js";
 
 export const verifyPayment = async (req, res) => {
   const {
@@ -52,21 +52,11 @@ export const verifyPayment = async (req, res) => {
     const studentEmail = userData?.user?.email;
 
     if (studentEmail) {
-      await sendEmail(
+      await sendSessionBookedEmail({
         studentEmail,
-        "Session Booked Successfully",
-        `
-Hello,
-
-Your session has been booked successfully.
-
-Counselor: ${counselor.full_name}
-Date: ${new Date(session_date).toLocaleString()}
-Status: Pending approval
-
-Thank you.
-`
-      );
+        counselorName: counselor.full_name,
+        sessionDate: session_date,
+      });
     }
   } catch (err) {
     console.log("Email error:", err.message);

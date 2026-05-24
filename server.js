@@ -37,4 +37,8 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(
+    "Brevo API Key:",
+    process.env.BREVO_API_KEY ? "Loaded" : "Not Loaded"
+  );
 });
