@@ -103,8 +103,28 @@ console.log("Session count:", count);
 
 // first session free
 if (count === 0) {
-  console.log("First session free");
-} else {
+  const { data, error } = await supabase
+    .from("sessions")
+    .insert([
+      {
+        user_id: req.user.id,
+        counselor_id,
+        session_date,
+        payment_status: "free"
+      },
+    ])
+    .select()
+    .single();
+
+  if (error) return res.status(400).json(error);
+
+  return res.json({
+    paymentRequired: false,
+    firstSession: true,
+    message: "First session is free"
+  });
+}
+else {
 const { data: counselorPrice } = await supabase
   .from("career_profiles")
   .select("session_price")

@@ -32,15 +32,34 @@ if (error) {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    const { data: existingUser } = await supabase
+  .from("profiles")
+  .select("id")
+  .eq("email", email)
+  .maybeSingle();
+
+if (!existingUser) {
+  return res.status(404).json({
+    error: "User does not exist. Please sign up first.",
+  });
+}
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    if (error) {
-      return res.status(400).json({ error: error.message });
-    }
+   if (error) {
+  if (error.message.includes("Invalid login credentials")) {
+    return res.status(401).json({
+      error: "Invalid email or password",
+    });
+  }
+
+  return res.status(400).json({
+    error: error.message,
+  });
+}
 const userId = data.user.id;
   const token = data.session.access_token;
 
@@ -131,6 +150,76 @@ export const updatePassword = async (req, res) => {
 
     res.json({ message: "Password updated successfully" });
 
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const googleAuth = async (req, res) => {
+  try {
+    const { access_token, mode } = req.body;
+
+    if (!access_token) {
+      return res.status(400).json({ error: "Access token is required" });
+    }
+
+    const { data, error } = await supabase.auth.getUser(access_token);
+
+    if (error || !data?.user) {
+      return res.status(401).json({ error: "Invalid Google token" });
+    }
+
+    const userId = data.user.id;
+
+    let { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profile && mode === "signup") {
+      return res.status(409).json({
+        error: "Account already exists. Please login instead.",
+      });
+    }
+
+    if (!profile && mode === "login") {
+      return res.status(404).json({
+        error: "Account not found. Please sign up first.",
+      });
+    }
+
+    if (!profile && mode === "signup") {
+      const { data: newProfile, error: profileError } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            id: userId,
+            role: "user",
+          },
+        ])
+        .select("role")
+        .single();
+
+      if (profileError) {
+        return res.status(400).json({ error: profileError.message });
+      }
+
+      profile = newProfile;
+    }
+
+    const { data: careerProfile } = await supabase
+      .from("career_profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    res.json({
+      token: access_token,
+      role: profile.role,
+      userId,
+      hasProfile: !!careerProfile,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
