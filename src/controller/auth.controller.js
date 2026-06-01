@@ -18,7 +18,8 @@ if (error) {
     await supabase.from("profiles").insert([
       {
         id: data.user.id,
-        role: "user"
+        role: "user",
+        email:email // Add email to profiles for easy access
       }
     ]);
 
@@ -184,6 +185,7 @@ export const googleAuth = async (req, res) => {
           {
             id: userId,
             role: "user",
+            email: data.user.email // Add email to profiles for easy access
           },
         ])
         .select("role")
