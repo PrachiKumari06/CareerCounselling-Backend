@@ -15,7 +15,8 @@ let query = supabase.from("jobs").select(`
   description,
   expiry_date,
   created_at,
-  company_culture
+  company_culture,
+  skills_required
 `);
 // NEW: filter by status
 if (status === "active") {
@@ -161,52 +162,61 @@ export const getMyApplications = async (req, res) => {
 
 export const getRecommendedJobs = async (req, res) => {
   try {
-    const userId = req.user.id;
+const normalizeSkills = (value = "") => {
+  return value
+    .toLowerCase()
+    .split(",")
+    .map(skill => skill.trim())
+    .filter(Boolean);
+};
+const { data: userProfile, error: profileError } = await supabase
+  .from("career_profiles")
+  .select("skills")
+  .eq("user_id", req.user.id)
+  .single();
 
-    // 1. Get profile
-    const { data: profile } = await supabase
-      .from("career_profiles")
-      .select("skills, interests")
-      .eq("user_id", userId)
-      .single();
+if (profileError || !userProfile) {
+  return res.status(404).json({ error: "Profile not found" });
+}
 
-    // 2. Get jobs
-    const { data: jobs } = await supabase
-      .from("jobs")
-      .select("*");
+const { data: jobs, error: jobsError } = await supabase
+  .from("jobs")
+  .select("*");
 
-    if (!jobs) return res.json([]);
+if (jobsError) {
+  return res.status(400).json({ error: jobsError.message });
+}
 
-    // 3. Prepare user keywords
-    const userKeywords = (
-      (profile?.skills || "") + "," + (profile?.interests || "")
+const userSkills = normalizeSkills(userProfile.skills);
+
+const jobsWithMatch = jobs.map(job => {
+const jobSkills = normalizeSkills(
+  job.skills_required ||
+  job.skills ||
+  job.required_skills ||
+  ""
+);
+  const matchedSkills = userSkills.filter(userSkill =>
+    jobSkills.some(jobSkill =>
+      jobSkill === userSkill ||
+      jobSkill.includes(userSkill) ||
+      userSkill.includes(jobSkill)
     )
-      .toLowerCase()
-      .split(",");
+  );
 
-    // 4. Match logic
-    const jobsWithMatch = jobs.map((job) => {
-      const jobSkills = (job.skills_required || "")
-        .toLowerCase()
-        .split(",");
+  const matchPercent =
+    userSkills.length === 0
+      ? 0
+      : Math.round((matchedSkills.length / userSkills.length) * 100);
 
-      const matched = jobSkills.filter((skill) =>
-        userKeywords.some((userSkill) =>
-          skill.includes(userSkill.trim()) ||
-          userSkill.includes(skill.trim())
-        )
-      );
+  return {
+    ...job,
+    matchedSkills,
+    matchPercent,
+  };
+});
 
-      const matchPercent =
-        jobSkills.length > 0
-          ? (matched.length / jobSkills.length) * 100
-          : 0;
-
-      return {
-        ...job,
-        matchPercent: Math.round(matchPercent),
-      };
-    });
+const recommendedJobs = jobsWithMatch.filter(job => job.matchedSkills.length > 0);
 
     // 5. Sort
     jobsWithMatch.sort((a, b) => b.matchPercent - a.matchPercent);
@@ -219,6 +229,7 @@ export const getRecommendedJobs = async (req, res) => {
     res.json(finalJobs);
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  console.log("RECOMMENDED JOB ERROR:", err);
+  res.status(500).json({ error: err.message });
+}
 };
