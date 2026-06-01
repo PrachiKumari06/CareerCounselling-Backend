@@ -32,18 +32,6 @@ if (error) {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { data: existingUser } = await supabase
-  .from("profiles")
-  .select("id")
-  .eq("email", email)
-  .maybeSingle();
-
-if (!existingUser) {
-  return res.status(404).json({
-    error: "User does not exist. Please sign up first.",
-  });
-}
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -52,7 +40,7 @@ if (!existingUser) {
    if (error) {
   if (error.message.includes("Invalid login credentials")) {
     return res.status(401).json({
-      error: "Invalid email or password",
+      error: "Invalid email or password. If you are a new user, please sign up first.",
     });
   }
 
